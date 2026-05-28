@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Shop PRO</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0b1220;
+color:white;
+}
+
+.header{
+padding:20px;
+background:#111c33;
+font-size:24px;
+font-weight:bold;
+text-align:center;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+display:grid;
+grid-template-columns:2fr 1fr;
+gap:20px;
+}
+
+.card{
+background:#111c33;
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+}
+
+button{
+padding:10px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.buy{background:#2563eb;color:white;}
+.cart{background:#059669;color:white;}
+.pay{background:#f59e0b;color:black;}
+.clear{background:#dc2626;color:white;}
+
+.product{
+display:flex;
+justify-content:space-between;
+padding:10px;
+border-bottom:1px solid #1f2a44;
+}
+
+input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:none;
+margin-top:10px;
+}
+
+.badge{
+padding:4px 8px;
+background:#1f2a44;
+border-radius:6px;
+font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">₿ Crypto Shop PRO</div>
+
+<div class="container">
+
+<!-- PRODUCTS -->
+<div>
+
+<div class="card">
+<h3>🛍 מוצרים</h3>
+
+<div id="products"></div>
+</div>
+
+</div>
+
+<!-- CART / CHECKOUT -->
+<div>
+
+<div class="card">
+<h3>🛒 עגלה</h3>
+
+<div id="cart"></div>
+
+<h3 id="total">סה״כ: 0$</h3>
+
+<button class="pay" onclick="checkout()">
+💳 תשלום Bitcoin
+</button>
+
+<button class="clear" onclick="clearCart()">
+נקה עגלה
+</button>
+</div>
+
+<div class="card">
+<h3>₿ תשלום</h3>
+
+<div id="paymentBox">אין תשלום פעיל</div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let products = [
+{id:1,name:"אוזניות",price:50},
+{id:2,name:"עכבר גיימינג",price:30},
+{id:3,name:"מקלדת RGB",price:80}
+];
+
+let cart = [];
+let orders = JSON.parse(localStorage.getItem("orders")) || [];
+
+/* render products */
+function renderProducts(){
+
+let html = "";
+
+products.forEach(p=>{
+html += `
+<div class="product">
+<div>
+${p.name}
+<br>
+<span class="badge">$${p.price}</span>
+</div>
+
+<button class="buy" onclick="addToCart(${p.id})">
+הוסף
+</button>
+</div>
+`;
+});
+
+document.getElementById("products").innerHTML = html;
+}
+
+/* cart */
+function addToCart(id){
+
+let p = products.find(x=>x.id===id);
+
+cart.push(p);
+
+renderCart();
+}
+
+/* render cart */
+function renderCart(){
+
+let html = "";
+let total = 0;
+
+cart.forEach((c,i)=>{
+total += c.price;
+
+html += `
+<div class="product">
+${c.name} - $${c.price}
+</div>
+`;
+});
+
+document.getElementById("cart").innerHTML = html;
+document.getElementById("total").innerText = "סה״כ: $" + total;
+}
+
+/* checkout */
+function checkout(){
+
+if(cart.length === 0) return alert("עגלה ריקה");
+
+// fake BTC rate
+let btcRate = 65000;
+
+let totalUSD =
+cart.reduce((a,b)=>a+b.price,0);
+
+let btc = (totalUSD / btcRate).toFixed(6);
+
+// order
+let order = {
+id:Date.now(),
+items:[...cart],
+usd:totalUSD,
+btc,
+date:new Date().toLocaleString()
+};
+
+orders.push(order);
+localStorage.setItem("orders",JSON.stringify(orders));
+
+showPayment(order);
+cart = [];
+renderCart();
+}
+
+/* payment UI */
+function showPayment(order){
+
+document.getElementById("paymentBox").innerHTML = `
+
+<h4>הזמנה נוצרה ✔</h4>
+
+<p>USD: $${order.usd}</p>
+<p>BTC: ₿${order.btc}</p>
+
+<div style="margin-top:10px;padding:10px;background:#1f2a44;border-radius:10px">
+כתובת תשלום (דמו):
+<br>
+bc1qexampleaddress123456
+</div>
+
+<br>
+
+<div style="width:150px;height:150px;background:white;color:black;display:flex;align-items:center;justify-content:center">
+QR CODE
+</div>
+
+`;
+}
+
+/* clear */
+function clearCart(){
+cart = [];
+renderCart();
+}
+
+/* init */
+renderProducts();
+renderCart();
+
+</script>
+
+</body>
+</html>
