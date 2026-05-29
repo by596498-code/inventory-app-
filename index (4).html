@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="he" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Shop</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+font-family:Arial;
+background:#07111f;
+color:white;
+min-height:100vh;
+}
+
+.header{
+background:linear-gradient(135deg,#2563eb,#1d4ed8);
+padding:22px;
+text-align:center;
+font-size:30px;
+font-weight:bold;
+position:sticky;
+top:0;
+}
+
+.container{
+max-width:1400px;
+margin:auto;
+padding:20px;
+display:grid;
+grid-template-columns:2fr 1fr;
+gap:20px;
+}
+
+.card{
+background:#111827;
+padding:20px;
+border-radius:20px;
+margin-bottom:20px;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:20px;
+}
+
+.product{
+background:#1f2937;
+padding:15px;
+border-radius:18px;
+}
+
+.product img{
+width:100%;
+height:180px;
+object-fit:cover;
+border-radius:12px;
+}
+
+.price{color:#60a5fa;font-size:20px;font-weight:bold;}
+
+button{
+padding:12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+margin-top:10px;
+width:100%;
+}
+
+.buy{background:#2563eb;color:white;}
+.clear{background:#dc2626;color:white;}
+.pay{background:#f59e0b;color:black;}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+padding:10px;
+border-bottom:1px solid #333;
+}
+
+.total{color:#4ade80;font-size:22px;margin-top:10px;}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+background:#0f172a;
+color:white;
+}
+
+.status{
+margin-top:10px;
+padding:10px;
+background:#0b2a1a;
+border:1px solid #22c55e;
+border-radius:10px;
+color:#22c55e;
+font-weight:bold;
+}
+
+.empty{opacity:0.6;text-align:center;padding:10px;}
+
+.toast{
+position:fixed;
+bottom:20px;
+left:20px;
+background:#2563eb;
+padding:12px;
+border-radius:10px;
+display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+₿ Crypto Shop Dosa
+</div>
+
+<div class="container">
+
+<!-- PRODUCTS -->
+<div class="card">
+<h2>🛍 מוצרים</h2>
+<div class="products" id="products"></div>
+</div>
+
+<!-- SIDEBAR -->
+<div>
+
+<div class="card">
+<h2>👤 לקוח</h2>
+<input id="customerName" placeholder="שם מלא">
+<input id="customerEmail" placeholder="אימייל">
+</div>
+
+<div class="card">
+<h2>🛒 עגלה</h2>
+<div id="cart"></div>
+<div class="total" id="total">סה״כ: $0</div>
+
+<button class="clear" onclick="clearCart()">נקה עגלה</button>
+</div>
+
+<!-- STATUS -->
+<div class="card">
+<h2>📦 סטטוס הזמנה</h2>
+<div id="orderStatus" class="empty">אין הזמנה פעילה</div>
+</div>
+
+<!-- PAYMENT -->
+<div class="card">
+<h2>₿ תשלום</h2>
+
+<div id="paymentBox">אין תשלום פעיל</div>
+
+<button class="buy" onclick="copyReceipt()">📋 קבלה</button>
+<button class="pay" onclick="downloadReceipt()">📸 צילום</button>
+<button class="buy" onclick="sendReceiptGmail()">📧 Gmail</button>
+<button class="pay" onclick="payWithZengo()">🚀 Zengo</button>
+
+</div>
+
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+let products=[
+{id:1,name:"אוזניות",price:50,img:"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500"},
+{id:2,name:"מקלדת",price:80,img:"https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=500"},
+{id:3,name:"עכבר",price:35,img:"https://images.unsplash.com/photo-1527814050087-3793815479db?w=500"}
+];
+
+let cart=[];
+let lastOrder=null;
+
+/* RENDER */
+function renderProducts(){
+let html="";
+products.forEach(p=>{
+html+=`
+<div class="product">
+<img src="${p.img}">
+<h3>${p.name}</h3>
+<div class="price">$${p.price}</div>
+<button class="buy" onclick="addToCart(${p.id})">הוסף</button>
+</div>`;
+});
+document.getElementById("products").innerHTML=html;
+}
+
+/* CART */
+function addToCart(id){
+let item=products.find(x=>x.id===id);
+cart.push(item);
+renderCart();
+toast("נוסף לעגלה");
+}
+
+function clearCart(){
+cart=[];
+renderCart();
+toast("נוקה");
+}
+
+function renderCart(){
+let div=document.getElementById("cart");
+
+if(cart.length===0){
+div.innerHTML="<div class='empty'>עגלה ריקה</div>";
+document.getElementById("total").innerText="סה״כ: $0";
+return;
+}
+
+let total=0;
+let html="";
+
+cart.forEach(i=>{
+total+=i.price;
+html+=`<div class="cart-item"><span>${i.name}</span><span>$${i.price}</span></div>`;
+});
+
+div.innerHTML=html;
+document.getElementById("total").innerText="סה״כ: $"+total;
+}
+
+/* CHECKOUT */
+function checkout(){
+
+if(cart.length===0)return;
+
+let name=document.getElementById("customerName").value;
+let email=document.getElementById("customerEmail").value;
+
+let total=cart.reduce((a,b)=>a+b.price,0);
+
+lastOrder={
+name,email,total,
+status:"ההזמנה התבצעה ✔"
+};
+
+document.getElementById("paymentBox").innerHTML=`
+<h3>✔ הזמנה נוצרה</h3>
+<p>${name}</p>
+<p>${email}</p>
+<p>$${total}</p>
+<div class="status">ההזמנה התבצעה ✔</div>
+`;
+
+document.getElementById("orderStatus").innerHTML=
+"✔ ההזמנה התבצעה בהצלחה";
+
+cart=[];
+renderCart();
+toast("הושלם");
+}
+
+/* ZENGO */
+function payWithZengo(){
+window.open("https://zengo.com/","_blank");
+}
+
+function copyReceipt(){
+navigator.clipboard.writeText("קבלה: "+JSON.stringify(lastOrder));
+toast("הועתק");
+}
+
+function downloadReceipt(){
+toast("צילום נשמר");
+}
+
+function sendReceiptGmail(){
+window.open("https://mail.google.com/","_blank");
+}
+
+function toast(msg){
+let t=document.getElementById("toast");
+t.innerText=msg;
+t.style.display="block";
+setTimeout(()=>t.style.display="none",2000);
+}
+
+renderProducts();
+renderCart();
+
+</script>
+
+</body>
+</html>
